@@ -1,5 +1,13 @@
 -- Run: lua tests/workspaces.lua [path/to/custom/workspaces.lua]
 local source = arg[1] or "dots/.config/hypr/custom/workspaces.lua"
+-- Isolate persisted preference from the real desktop.
+local state_dir = os.tmpname()
+os.remove(state_dir)
+local getenv = os.getenv
+os.getenv = function(name)
+    if name == "XDG_STATE_HOME" then return state_dir end
+    return getenv(name)
+end
 local events, timers, rules, moves = {}, {}, {}, {}
 local monitors, workspaces = {}, {}
 hl = {
@@ -34,7 +42,7 @@ local function expect(first, second)
         assert(rules[id].default == (id == 1 or (id == 4 and first ~= second)))
     end
 end
-dofile(source)
+local module = dofile(source)
 monitors = { monitor("HDMI-A-1"), monitor("eDP-1") }
 workspaces = {
     { id = 4, monitor = monitors[2] },
@@ -46,6 +54,23 @@ flush()
 expect("eDP-1", "HDMI-A-1")
 assert(#moves == 2 and moves[1].workspace == 4 and moves[2].workspace == 1)
 
+-- Inversion changes all rules and moves every existing managed workspace.
+workspaces, moves = {}, {}
+for id = 1, 10 do
+    workspaces[id] = { id = id, monitor = { name = rules[id].monitor } }
+end
+module.toggle()
+expect("HDMI-A-1", "eDP-1")
+assert(#moves == 10)
+
+-- Reloading the module reads the saved preference.
+events["config.unload"]()
+module = dofile(source)
+flush()
+expect("HDMI-A-1", "eDP-1")
+module.toggle()
+expect("eDP-1", "HDMI-A-1")
+
 -- A burst of hotplug events should produce one reconciliation.
 monitors, workspaces, moves = { monitor("eDP-1") }, {}, {}
 events["monitor.removed"]()
@@ -55,6 +80,21 @@ hl.get_monitors = function() calls = calls + 1; return monitors end
 flush()
 assert(calls == 1)
 expect("eDP-1", "eDP-1")
+module.toggle() -- No-op on a single output, including the saved preference.
+monitors = { monitor("eDP-1"), monitor("HDMI-A-1") }
+events["monitor.added"]()
+flush()
+expect("eDP-1", "HDMI-A-1")
+module.toggle()
+monitors = { monitor("eDP-1") }
+events["monitor.removed"]()
+flush()
+expect("eDP-1", "eDP-1")
+monitors = { monitor("eDP-1"), monitor("HDMI-A-1") }
+events["monitor.added"]()
+flush()
+expect("HDMI-A-1", "eDP-1")
+module.toggle()
 
 monitors = { monitor("HDMI-A-1") }
 events["config.reloaded"]()
@@ -74,4 +114,7 @@ events["config.unload"]()
 calls = 0
 flush()
 assert(calls == 0)
+os.getenv = getenv
+os.remove(state_dir .. "/hyprland-workspace-layout")
+assert(os.execute("rmdir '" .. state_dir .. "'"))
 print("Workspace topology tests passed")

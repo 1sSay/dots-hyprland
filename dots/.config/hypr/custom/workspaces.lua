@@ -1,7 +1,15 @@
 -- Personal workspace placement. Monitor names take priority over connection order.
 local preferred = { "eDP-1", "HDMI-A-1" }
+local state_dir = os.getenv("XDG_STATE_HOME") or (os.getenv("HOME") .. "/.local/state")
+local state_path = state_dir .. "/hyprland-workspace-layout"
+local state_file = io.open(state_path, "r")
+local inverted = false
+if state_file then
+    inverted = state_file:read("*l") == "inverted"
+    state_file:close()
+end
 
-local function apply()
+local function apply(toggle)
     local monitors = {}
     for _, monitor in ipairs(hl.get_monitors()) do
         if monitor.enabled and not monitor.is_mirror then
@@ -21,8 +29,25 @@ local function apply()
     end)
     if #monitors == 0 then return end
 
+    if toggle then
+        -- With one output there is no other monitor to swap with.
+        if #monitors < 2 then return end
+        local quoted_dir = "'" .. state_dir:gsub("'", "'\\''") .. "'"
+        local file = io.open(state_path, "w")
+        if not file then
+            -- Hyprland may reap the child before os.execute can collect its status.
+            -- Opening the file below verifies the directory was actually created.
+            os.execute("mkdir -p -- " .. quoted_dir)
+            file = assert(io.open(state_path, "w"))
+        end
+        assert(file:write(inverted and "normal\n" or "inverted\n"))
+        file:close()
+        inverted = not inverted
+    end
+
     local first = monitors[1].name
     local second = monitors[2] and monitors[2].name or first
+    if inverted then first, second = second, first end
     local targets = {}
     for id = 1, 10 do
         local target = (id >= 4 and id <= 6) and second or first
@@ -68,3 +93,5 @@ hl.on("config.unload", function()
     if pending then pending:set_enabled(false) end
 end)
 schedule()
+
+return { toggle = function() apply(true) end }
