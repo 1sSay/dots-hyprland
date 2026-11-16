@@ -45,6 +45,24 @@ MouseArea {
             warningThreshold: Config.options.bar.resources.cpuWarningThreshold
         }
 
+        Resource {
+            iconName: "thermometer"
+            percentage: (ResourceUsage.cpuTemperature ?? 0) / 100
+            valueText: ResourceUsage.cpuTemperature === null ? "—" : `${Math.round(ResourceUsage.cpuTemperature)}°`
+            maximumValueText: "100°"
+            warningThreshold: 90
+            Layout.leftMargin: 6
+        }
+
+        Resource {
+            iconName: "developer_board"
+            percentage: (ResourceUsage.gpuTemperature ?? 0) / 100
+            valueText: ResourceUsage.gpuTemperature === null ? "—" : `${Math.round(ResourceUsage.gpuTemperature)}°`
+            maximumValueText: "100°"
+            warningThreshold: 90
+            Layout.leftMargin: 6
+        }
+
     }
 
     ResourcesPopup {
