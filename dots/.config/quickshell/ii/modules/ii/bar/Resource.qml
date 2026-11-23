@@ -9,6 +9,8 @@ Item {
     required property double percentage
     property int warningThreshold: 100
     property bool shown: true
+    property string valueText: `${Math.round(percentage * 100)}`
+    property string maximumValueText: "100"
     clip: true
     visible: width > 0 && height > 0
     implicitWidth: resourceRowLayout.x < 0 ? 0 : resourceRowLayout.implicitWidth
@@ -56,7 +58,7 @@ Item {
 
             TextMetrics {
                 id: fullPercentageTextMetrics
-                text: "100"
+                text: root.maximumValueText
                 font.pixelSize: Appearance.font.pixelSize.small
             }
 
@@ -65,7 +67,7 @@ Item {
                 anchors.centerIn: parent
                 color: Appearance.colors.colOnLayer1
                 font.pixelSize: Appearance.font.pixelSize.small
-                text: `${Math.round(percentage * 100).toString()}`
+                text: root.valueText
             }
         }
 

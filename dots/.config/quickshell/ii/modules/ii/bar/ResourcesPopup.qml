@@ -88,6 +88,49 @@ StyledPopup {
                     label: Translation.tr("Load:")
                     value: `${Math.round(ResourceUsage.cpuUsage * 100)}%`
                 }
+                StyledPopupValueRow {
+                    icon: "thermometer"
+                    label: Translation.tr("Temperature:")
+                    value: ResourceUsage.cpuTemperature === null ? "—" : `${Math.round(ResourceUsage.cpuTemperature)}°C`
+                }
+            }
+        }
+
+        Column {
+            anchors.top: parent.top
+            spacing: 8
+
+            StyledPopupHeaderRow {
+                icon: "developer_board"
+                label: "GPU"
+            }
+            StyledPopupValueRow {
+                icon: "thermometer"
+                label: Translation.tr("Temperature:")
+                value: ResourceUsage.gpuTemperature === null ? "—" : `${Math.round(ResourceUsage.gpuTemperature)}°C`
+            }
+        }
+
+        Column {
+            anchors.top: parent.top
+            spacing: 8
+
+            StyledPopupHeaderRow {
+                icon: "mode_fan"
+                label: Translation.tr("Cooling")
+            }
+            Column {
+                spacing: 4
+                StyledPopupValueRow {
+                    icon: "mode_fan"
+                    label: Translation.tr("Fan 1")
+                    value: ResourceUsage.fan1Rpm === null ? "—" : `${ResourceUsage.fan1Rpm} / ${ResourceUsage.fan1ReferenceRpm} RPM`
+                }
+                StyledPopupValueRow {
+                    icon: "mode_fan"
+                    label: Translation.tr("Fan 2")
+                    value: ResourceUsage.fan2Rpm === null ? "—" : `${ResourceUsage.fan2Rpm} / ${ResourceUsage.fan2ReferenceRpm} RPM`
+                }
             }
         }
     }

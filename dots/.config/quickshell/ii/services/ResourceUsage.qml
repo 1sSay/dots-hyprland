@@ -2,6 +2,7 @@ pragma Singleton
 pragma ComponentBehavior: Bound
 
 import qs.modules.common
+import qs.modules.common.functions
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -20,6 +21,12 @@ Singleton {
 	property real swapUsed: swapTotal - swapFree
     property real swapUsedPercentage: swapTotal > 0 ? (swapUsed / swapTotal) : 0
     property real cpuUsage: 0
+    property var cpuTemperature: null
+    property var gpuTemperature: null
+    property var fan1Rpm: null
+    property var fan2Rpm: null
+    readonly property int fan1ReferenceRpm: 7700
+    readonly property int fan2ReferenceRpm: 8694
     property var previousCpuStats
 
     property string maxAvailableMemoryString: kbToGbString(ResourceUsage.memoryTotal)
@@ -67,6 +74,8 @@ Singleton {
             // Reload files
             fileMeminfo.reload()
             fileStat.reload()
+            if (!temperatureProc.running)
+                temperatureProc.running = true
 
             // Parse memory and swap usage
             const textMeminfo = fileMeminfo.text()
@@ -99,6 +108,35 @@ Singleton {
 
 	FileView { id: fileMeminfo; path: "/proc/meminfo" }
     FileView { id: fileStat; path: "/proc/stat" }
+
+    Process {
+        id: temperatureProc
+        command: ["python3", FileUtils.trimFileProtocol(Qt.resolvedUrl("../scripts/hardware/temperatures.py"))]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    const temperatures = JSON.parse(text)
+                    root.cpuTemperature = temperatures.cpu ?? null
+                    root.gpuTemperature = temperatures.gpu ?? null
+                    root.fan1Rpm = temperatures.fan_rpms?.[0] ?? null
+                    root.fan2Rpm = temperatures.fan_rpms?.[1] ?? null
+                } catch (error) {
+                    root.cpuTemperature = null
+                    root.gpuTemperature = null
+                    root.fan1Rpm = null
+                    root.fan2Rpm = null
+                }
+            }
+        }
+        onExited: (exitCode, exitStatus) => {
+            if (exitCode !== 0 || exitStatus !== 0) {
+                root.cpuTemperature = null
+                root.gpuTemperature = null
+                root.fan1Rpm = null
+                root.fan2Rpm = null
+            }
+        }
+    }
 
     Process {
         id: findCpuMaxFreqProc
