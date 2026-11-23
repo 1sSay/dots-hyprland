@@ -319,6 +319,10 @@ Item { // Bar content region
                 }
             }
 
+            PushupWidget {
+                Layout.alignment: Qt.AlignVCenter
+            }
+
             SysTray {
                 visible: root.useShortenedForm === 0
                 Layout.fillWidth: false
@@ -340,6 +344,7 @@ Item { // Bar content region
                     WeatherBar {}
                 }
             }
+
         }
     }
 }
